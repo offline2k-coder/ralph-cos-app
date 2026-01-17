@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter --version:*)",
+      "Bash(flutter create:*)",
+      "Bash(flutter pub add:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)",
+      "Bash(flutter build:*)",
+      "Bash(adb install:*)",
+      "Bash(adb logcat:*)",
+      "Bash(flutter pub remove:*)",
+      "WebSearch",
+      "Bash(exit)",
+      "Bash(ls:*)",
+      "Bash(brew install:*)",
+      "Bash(./generate_icons.sh:*)",
+      "Bash(git init:*)"
+    ]
+  }
+}

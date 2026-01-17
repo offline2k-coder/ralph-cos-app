@@ -1,0 +1,27 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark Background -->
+  <rect width="1024" height="1024" fill="#0D0D0D" rx="180"/>
+
+  <!-- Gold Border -->
+  <rect x="40" y="40" width="944" height="944" rx="160" fill="none" stroke="#FFD700" stroke-width="16"/>
+
+  <!-- Shield/Badge Shape -->
+  <path d="M 512 180 L 360 250 L 360 470 C 360 590 420 690 512 750 C 604 690 664 590 664 470 L 664 250 Z"
+        fill="#FFD700"/>
+
+  <!-- Upward Arrow (Ascent Symbol) -->
+  <g transform="translate(512, 350)">
+    <!-- Arrow shaft -->
+    <rect x="-30" y="50" width="60" height="250" fill="#0D0D0D"/>
+    <!-- Arrow head -->
+    <path d="M 0 -30 L 80 80 L 40 80 L 40 120 L -40 120 L -40 80 L -80 80 Z" fill="#0D0D0D"/>
+  </g>
+
+  <!-- Checkmark (Discipline Symbol) -->
+  <path d="M 420 620 L 480 690 L 620 530"
+        fill="none" stroke="#0D0D0D" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Large R for Ralph -->
+  <text x="512" y="920" font-family="Arial Black, sans-serif" font-size="240" font-weight="900"
+        fill="#FFD700" text-anchor="middle" dominant-baseline="middle">R</text>
+</svg>

@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="240" fill="#1A1A1A" stroke="#FFD700" stroke-width="8"/>
+
+  <!-- Shield Shape (Accountability) -->
+  <path d="M 256 80 L 180 120 L 180 240 C 180 300 210 350 256 380 C 302 350 332 300 332 240 L 332 120 Z"
+        fill="#FFD700" stroke="#1A1A1A" stroke-width="4"/>
+
+  <!-- Upward Arrow (Ascent) -->
+  <path d="M 256 140 L 286 180 L 270 180 L 270 260 L 242 260 L 242 180 L 226 180 Z"
+        fill="#1A1A1A"/>
+
+  <!-- Checkmark (Daily Discipline) -->
+  <path d="M 235 290 L 248 305 L 280 265"
+        fill="none" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Text: R (Ralph) -->
+  <text x="256" y="450" font-family="Arial, sans-serif" font-size="120" font-weight="bold"
+        fill="#FFD700" text-anchor="middle" letter-spacing="-5">R</text>
+
+  <!-- Subtitle Arc -->
+  <path id="curve" d="M 100 480 Q 256 520 412 480" fill="none"/>
+  <text font-family="Arial, sans-serif" font-size="24" fill="#FFD700" text-anchor="middle">
+    <textPath href="#curve" startOffset="50%">CHIEF OF SELF</textPath>
+  </text>
+</svg>
