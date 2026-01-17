@@ -16,7 +16,11 @@
       "Bash(ls:*)",
       "Bash(brew install:*)",
       "Bash(./generate_icons.sh:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(gh repo create:*)"
     ]
   }
 }
