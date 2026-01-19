@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/streak_data.dart';
 import '../models/task.dart';
+import '../core/app_constants.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -205,8 +206,9 @@ class DatabaseService {
       int newStreak = streak.currentStreak + 1;
       int newPasses = streak.passesAvailable;
 
-      // Award pass every 20 days (max 3)
-      if (newStreak % 20 == 0 && newPasses < 3) {
+      // Award pass every X days (max Y)
+      if (newStreak % AppConstants.daysPerPass == 0 && 
+          newPasses < AppConstants.maxPasses) {
         newPasses++;
       }
 

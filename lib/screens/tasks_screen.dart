@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../services/database_service.dart';
+import '../widgets/status_badge.dart';
 import 'task_detail_screen.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -76,18 +77,8 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   String _getCategoryLabel(String category) {
-    switch (category) {
-      case '00_INBOX':
-        return 'INBOX';
-      case '10_CORE_TASKS':
-        return 'CORE';
-      case '20_STRATEGIC_PROJECT':
-        return 'STRATEGIC';
-      case '30_KNOWLEDGE_ASSETS':
-        return 'KNOWLEDGE';
-      default:
-        return category;
-    }
+    if (category == 'ALL') return 'ALL TASKS';
+    return category.replaceAll('_', ' ');
   }
 
   Future<void> _toggleTaskCompletion(Task task) async {
@@ -220,28 +211,14 @@ class _TasksScreenState extends State<TasksScreen> {
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _getCategoryColor(task.category),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          _getCategoryLabel(task.category),
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
+                                      StatusBadge(
+                                        label: _getCategoryLabel(task.category),
+                                        color: _getCategoryColor(task.category),
                                       ),
                                     ],
                                   ),
                                 ),
-                                trailing: const Icon(Icons.chevron_right),
+                                trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
                                 onTap: () {
                                   Navigator.push(
                                     context,

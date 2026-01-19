@@ -109,19 +109,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     // Save template to database (without starting challenge)
     final config = await _db.getChallengeConfig();
+    final db = await _db.database;
     if (config != null) {
-      await _db.database.then((db) => db.update(
+      await db.update(
         'challenge_config',
         {'template': _challengeTemplateController.text},
         where: 'id = ?',
-        whereArgs: [1],
-      ));
+        whereArgs: [config['id']],
+      );
     } else {
-      await _db.database.then((db) => db.insert('challenge_config', {
+      await db.insert('challenge_config', {
         'template': _challengeTemplateController.text,
         'isActive': 0,
         'currentDay': 1,
-      }));
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
     }
 
     setState(() => _isLoading = false);

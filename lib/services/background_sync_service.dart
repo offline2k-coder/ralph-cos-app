@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:workmanager/workmanager.dart';
 import 'git_sync_service.dart';
 import 'content_parser_service.dart';
 import 'database_service.dart';
+import '../core/app_constants.dart';
 
 // Background callback function must be top-level
 @pragma('vm:entry-point')
@@ -66,22 +68,27 @@ class BackgroundSyncService {
       // Cancel any existing tasks
       await Workmanager().cancelAll();
 
-      // Calculate next 03:00 CET (UTC+1)
+      // Calculate next sync time from CET
       final now = DateTime.now().toUtc();
-      DateTime next3AM = DateTime.utc(
+      
+      // CET is typically UTC+1, so 03:00 CET is 02:00 UTC
+      // Adjust if Daylight Savings is a concern, but following original logic for now
+      final utcSyncHour = AppConstants.nightSyncHour - 1; 
+
+      DateTime nextSync = DateTime.utc(
         now.year,
         now.month,
         now.day,
-        2, // 03:00 CET = 02:00 UTC (during standard time)
+        utcSyncHour,
         0,
       );
 
-      // If it's already past 02:00 UTC today, schedule for tomorrow
-      if (now.hour >= 2) {
-        next3AM = next3AM.add(const Duration(days: 1));
+      // If it's already past the sync hour today, schedule for tomorrow
+      if (now.hour >= utcSyncHour) {
+        nextSync = nextSync.add(const Duration(days: 1));
       }
 
-      final delay = next3AM.difference(now);
+      final delay = nextSync.difference(now);
       final initialDelayMinutes = delay.inMinutes;
 
       print('BackgroundSyncService: Scheduling sync in $initialDelayMinutes minutes (${delay.inHours}h ${delay.inMinutes % 60}m)');

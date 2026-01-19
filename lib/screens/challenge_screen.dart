@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/challenge_service.dart';
 import '../services/database_service.dart';
+import '../widgets/tactical_card.dart';
+import '../widgets/tactical_button.dart';
+import '../widgets/status_badge.dart';
 import 'settings_screen.dart';
 
 class ChallengeScreen extends StatefulWidget {
@@ -170,26 +173,17 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton.icon(
+                TacticalButton(
                   onPressed: () async {
                     Navigator.pop(context); // Go back to dashboard
                     await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const SettingsScreen()),
                     );
-                    // Reload when coming back
                     _loadChallengeData();
                   },
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('START CHALLENGE'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                  ),
+                  label: 'START CHALLENGE',
+                  icon: Icons.play_arrow,
                 ),
               ],
             ),
@@ -219,106 +213,93 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Day and Streak Card
-            Card(
-              color: Colors.deepOrange.shade900.withValues(alpha: 0.3),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        Text(
-                          'DAY',
-                          style: TextStyle(
-                            color: Colors.deepOrange.shade300,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                          ),
+            // Day and Streak Tactical Card
+            TacticalCard(
+              title: 'CHALLENGE PROGRESS',
+              icon: Icons.emoji_events,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      const Text(
+                        'DAY',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                          fontSize: 12,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '$day/30',
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepOrange.shade300,
-                              ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      width: 1,
-                      height: 60,
-                      color: Colors.grey.shade700,
-                    ),
-                    Column(
-                      children: [
-                        Text(
-                          'STREAK',
-                          style: TextStyle(
-                            color: Colors.orange.shade300,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.local_fire_department,
-                              color: Colors.orange.shade400,
-                              size: 32,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$day/30',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepOrange.shade300,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$streak',
-                              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade400,
-                                  ),
-                            ),
-                          ],
+                      ),
+                    ],
+                  ),
+                  Container(
+                    width: 1,
+                    height: 60,
+                    color: Colors.grey.shade700,
+                  ),
+                  Column(
+                    children: [
+                      const Text(
+                        'STREAK',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                          fontSize: 12,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.local_fire_department,
+                            color: Colors.orange.shade400,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$streak',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade400,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // Today's Task
-            Text(
-              'TODAY\'S TASK',
-              style: TextStyle(
-                color: Colors.deepOrange.shade300,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              color: Colors.grey.shade900,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                  task,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        height: 1.6,
-                      ),
-                ),
+            TacticalCard(
+              title: 'TODAY\'S OBJECTIVE',
+              accentColor: Colors.blue.shade300,
+              icon: Icons.center_focus_strong,
+              child: Text(
+                task,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      height: 1.6,
+                    ),
               ),
             ),
             const SizedBox(height: 40),
 
-            // Emotion Selection - Simple and Direct
             Text(
-              'HOW DO YOU FEEL?',
+              'CHECK-IN WITH EMOTION',
               style: TextStyle(
-                color: Colors.deepOrange.shade300,
+                color: Colors.grey.shade500,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
                 fontSize: 14,
@@ -328,103 +309,19 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
             const SizedBox(height: 24),
 
             // Four Emoji Buttons in 2x2 grid
-            Column(
+            Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _emotions.take(2).map((emotion) {
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: GestureDetector(
-                          onTap: _isSubmitting
-                              ? null
-                              : () => _completeWithEmotion(
-                                    emotion['emoji']!,
-                                    emotion['label']!,
-                                  ),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade900,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.grey.shade700,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Text(
-                                  emotion['emoji']!,
-                                  style: const TextStyle(fontSize: 64),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                emotion['label']!.toUpperCase(),
-                                style: TextStyle(
-                                  color: Colors.grey.shade400,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _emotions.skip(2).map((emotion) {
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: GestureDetector(
-                          onTap: _isSubmitting
-                              ? null
-                              : () => _completeWithEmotion(
-                                    emotion['emoji']!,
-                                    emotion['label']!,
-                                  ),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade900,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.grey.shade700,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Text(
-                                  emotion['emoji']!,
-                                  style: const TextStyle(fontSize: 64),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                emotion['label']!.toUpperCase(),
-                                style: TextStyle(
-                                  color: Colors.grey.shade400,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                _buildEmotionOption(_emotions[0]),
+                const SizedBox(width: 12),
+                _buildEmotionOption(_emotions[1]),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildEmotionOption(_emotions[2]),
+                const SizedBox(width: 12),
+                _buildEmotionOption(_emotions[3]),
               ],
             ),
             const SizedBox(height: 24),
@@ -436,6 +333,48 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                   child: CircularProgressIndicator(color: Colors.deepOrange),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmotionOption(Map<String, String> emotion) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: _isSubmitting
+            ? null
+            : () => _completeWithEmotion(
+                  emotion['emoji']!,
+                  emotion['label']!,
+                ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.grey.shade700,
+                  width: 2,
+                ),
+              ),
+              child: Text(
+                emotion['emoji']!,
+                style: const TextStyle(fontSize: 48),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              emotion['label']!.toUpperCase(),
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                fontSize: 10,
+              ),
+            ),
           ],
         ),
       ),
