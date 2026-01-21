@@ -86,65 +86,66 @@ class NotificationService {
     }
 
     final messages = [
-      'Aufstehen! Keine Ausreden!',
-      'Ralph wartet nicht. Zeit zu checken.',
-      'Deine Streak ist in Gefahr!',
-      'Jetzt oder nie. Check-in läuft ab!',
+      'STREAK MISSION START: 05:00. Aufstehen. Jetzt.',
+      'RALPH: Keine Ausreden. Deine Vision stirbt im Bett.',
+      'ESCALATION 1: 07:00. Die Welt arbeitet bereits. Du auch?',
+      'ESCALATION 2: 08:00. Dein Zeitfenster schließt sich. JETZT HANDELN.',
     ];
 
-    // Schedule escalating notifications from 05:00 to 08:55
+    // Schedule escalating notifications from 05:00 to 08:00
     for (int i = 0; i < 4; i++) {
       final notificationTime = scheduledDate.add(Duration(hours: i));
 
       await _notifications.zonedSchedule(
         i,
-        'RALPH-CoS',
+        'RALPH-CoS: DRILL',
         messages[i],
         tz.TZDateTime.from(notificationTime, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'ralph_cos_channel',
-            'Ralph CoS Notifications',
-            channelDescription: 'Discipline and accountability notifications',
-            importance: Importance.max,
-            priority: Priority.high,
-            enableVibration: true,
-            playSound: true,
-          ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
+        _getHardNotificationDetails(), // Use hard details for all morning alerts
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     }
 
-    // Final warning at 08:55
-    final finalWarning = scheduledDate.add(const Duration(hours: 3, minutes: 55));
+    // Final warning at 08:50
+    final finalWarning = scheduledDate.add(const Duration(hours: 3, minutes: 50));
     await _notifications.zonedSchedule(
       99,
-      'LETZTE WARNUNG!',
-      'Noch 5 Minuten bis Streak-Break. JETZT EINCHECKEN!',
+      'STATUS CRITICAL: 10 MIN REMAINING!',
+      '09:00 IS THE END. Check-in or lose everything. TRUTH IS MANDATORY.',
       tz.TZDateTime.from(finalWarning, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'ralph_cos_channel',
-          'Ralph CoS Notifications',
-          channelDescription: 'Discipline and accountability notifications',
-          importance: Importance.max,
-          priority: Priority.high,
-          enableVibration: true,
-          playSound: true,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
+      _getHardNotificationDetails(),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+
+    // Streak Break at 09:01
+    final streakBreak = scheduledDate.add(const Duration(hours: 4, minutes: 1));
+    await _notifications.zonedSchedule(
+      100,
+      'STREAK TERMINATED 💀',
+      '09:01. Failure is confirmed. Your streak is 0. Enter the Anti-Vision.',
+      tz.TZDateTime.from(streakBreak, tz.local),
+      _getHardNotificationDetails(),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+  NotificationDetails _getHardNotificationDetails() {
+    return const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'ralph_cos_channel',
+        'Ralph CoS Notifications',
+        channelDescription: 'Discipline and accountability notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+        enableVibration: true,
+        playSound: true,
+        fullScreenIntent: true,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
     );
   }
 

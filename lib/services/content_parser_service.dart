@@ -69,4 +69,31 @@ class ContentParserService {
     return '- [x]'.allMatches(content).length +
            '- [X]'.allMatches(content).length;
   }
+
+  Future<void> writeTaskBack(Task task) async {
+    try {
+      final file = File(task.id); // task.id is the file path
+      if (!await file.exists()) return;
+
+      String content = await file.readAsString();
+      
+      if (task.isCompleted) {
+        // Mark all unchecked as checked or just ensure it looks checked
+        // If it's a simple task file (no sub-tasks), we just replace the first match or overall
+        // If it has multiple boxes, a "brutal" approach is to check them all if the task is complete
+        content = content.replaceAll('- [ ]', '- [x]');
+      } else {
+        // Uncheck all
+        content = content.replaceAll('- [x]', '- [ ]');
+        content = content.replaceAll('- [X]', '- [ ]');
+      }
+
+      await file.writeAsString(content);
+      
+      // Trigger Git Sync
+      await _gitSync.sync();
+    } catch (e) {
+      print('ContentParser: Error writing task back - $e');
+    }
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/task.dart';
 import '../services/database_service.dart';
+import '../services/content_parser_service.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/tactical_card.dart';
 
@@ -16,6 +17,7 @@ class TaskDetailScreen extends StatefulWidget {
 
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final DatabaseService _db = DatabaseService();
+  final ContentParserService _parser = ContentParserService();
   late Task _task;
 
   @override
@@ -46,6 +48,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   Future<void> _toggleCompletion() async {
     final updatedTask = _task.copyWith(isCompleted: !_task.isCompleted);
     await _db.updateTask(updatedTask);
+    
+    // Write-back to Git
+    await _parser.writeTaskBack(updatedTask);
+    
     setState(() {
       _task = updatedTask;
     });

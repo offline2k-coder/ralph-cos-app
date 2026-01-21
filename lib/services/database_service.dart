@@ -21,7 +21,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'ralph_cos.db');
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -80,6 +80,17 @@ class DatabaseService {
           guiltZero INTEGER NOT NULL,
           reflection TEXT,
           createdAt TEXT NOT NULL
+        )
+      ''');
+    }
+    if (oldVersion < 5) {
+      // Add day logs table for "Won/Lost" tracking
+      await db.execute('''
+        CREATE TABLE day_logs(
+          date TEXT PRIMARY KEY,
+          status TEXT CHECK(status IN ('WON', 'LOST')),
+          locked INTEGER DEFAULT 0,
+          updatedAt TEXT NOT NULL
         )
       ''');
     }
@@ -161,6 +172,16 @@ class DatabaseService {
         guiltZero INTEGER NOT NULL,
         reflection TEXT,
         createdAt TEXT NOT NULL
+      )
+    ''');
+
+    // Day logs table
+    await db.execute('''
+      CREATE TABLE day_logs(
+        date TEXT PRIMARY KEY,
+        status TEXT CHECK(status IN ('WON', 'LOST')),
+        locked INTEGER DEFAULT 0,
+        updatedAt TEXT NOT NULL
       )
     ''');
 
@@ -484,5 +505,54 @@ class DatabaseService {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  // Day log operations
+  Future<Map<String, dynamic>?> getDayLog(String date) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'day_logs',
+      where: 'date = ?',
+      whereArgs: [date],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return maps.first;
+  }
+
+  Future<void> saveDayLog({
+    required String date,
+    required String status,
+    bool locked = false,
+  }) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+
+    await db.insert(
+      'day_logs',
+      {
+        'date': date,
+        'status': status,
+        'locked': locked ? 1 : 0,
+        'updatedAt': now,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> lockDay(String date) async {
+    final db = await database;
+    await db.update(
+      'day_logs',
+      {'locked': 1, 'updatedAt': DateTime.now().toIso8601String()},
+      where: 'date = ?',
+      whereArgs: [date],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAllDayLogs() async {
+    final db = await database;
+    return await db.query('day_logs', orderBy: 'date DESC');
   }
 }

@@ -44,36 +44,22 @@ class KpiTrackingService {
 
   Future<void> _saveKpis(List<dynamic> kpis) async {
     try {
-      final filePath = await _kpiFilePath;
+      final repoPath = await _gitSync.repoPath;
+      final filePath = '$repoPath/ralph_logs/daily_kpis.json';
       final file = File(filePath);
 
-      final jsonString = JsonEncoder.withIndent('  ').convert(kpis);
+      // Ensure directory exists
+      await file.parent.create(recursive: true);
+
+      final jsonString = const JsonEncoder.withIndent('  ').convert(kpis);
       await file.writeAsString(jsonString);
 
       print('KpiTrackingService: Saved KPIs to $filePath');
 
-      // Push to GitHub
-      await _pushToGitHub(jsonString);
+      // Trigger Git Sync
+      await _gitSync.sync();
     } catch (e) {
       print('KpiTrackingService: Error saving KPIs - $e');
-    }
-  }
-
-  Future<void> _pushToGitHub(String jsonContent) async {
-    try {
-      final success = await _gitSync.pushFileToGitHub(
-        filePath: 'ralph_logs/daily_kpis.json',
-        content: jsonContent,
-        commitMessage: 'Update daily KPIs - ${DateTime.now().toIso8601String().split('T')[0]}',
-      );
-
-      if (success) {
-        print('KpiTrackingService: Successfully synced KPIs to GitHub');
-      } else {
-        print('KpiTrackingService: Failed to sync KPIs to GitHub');
-      }
-    } catch (e) {
-      print('KpiTrackingService: Error pushing to GitHub - $e');
     }
   }
 
@@ -261,55 +247,44 @@ class KpiTrackingService {
 
   Future<void> _addToConsolidatedTracking(Map<String, dynamic> entry) async {
     try {
-      // Load existing data
-      final filePath = 'ralph_logs/ralph_tracking.json';
+      final repoPath = await _gitSync.repoPath;
+      final filePath = '$repoPath/ralph_logs/ralph_tracking.json';
+      final file = File(filePath);
+
       List<dynamic> allData = [];
 
-      try {
-        final getUrl = 'https://api.github.com/repos/offline2k-coder/my-notion-backup/contents/$filePath';
-        final token = await _gitSync.getToken();
-
-        if (token != null) {
-          final response = await http.get(
-            Uri.parse(getUrl),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Accept': 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-            },
-          );
-
-          if (response.statusCode == 200) {
-            final data = json.decode(response.body);
-            final content = utf8.decode(base64.decode(data['content']));
+      // 1. Read local file directly (instead of HTTP GET from API)
+      if (await file.exists()) {
+        try {
+          final content = await file.readAsString();
+          if (content.isNotEmpty) {
             allData = json.decode(content);
           }
+        } catch (e) {
+          print('KpiTrackingService: Error reading tracking file, starting fresh');
         }
-      } catch (e) {
-        print('KpiTrackingService: Creating new consolidated tracking file');
+      } else {
+        await file.parent.create(recursive: true);
       }
 
-      // Add new entry
+      // 2. Add new entry
       allData.add(entry);
 
-      // Sort by date, then timestamp
+      // 3. Sort by date, then timestamp
       allData.sort((a, b) {
         final dateCompare = (a['date'] as String).compareTo(b['date'] as String);
         if (dateCompare != 0) return dateCompare;
         return (a['timestamp'] as String).compareTo(b['timestamp'] as String);
       });
 
-      // Save
-      final jsonString = JsonEncoder.withIndent('  ').convert(allData);
+      // 4. Save locally
+      final jsonString = const JsonEncoder.withIndent('  ').convert(allData);
+      await file.writeAsString(jsonString);
 
-      final success = await _gitSync.pushFileToGitHub(
-        filePath: filePath,
-        content: jsonString,
-        commitMessage: 'Update tracking - ${entry['type']} - ${entry['date']}',
-      );
-
+      // 5. Trigger Git Sync (Write-back)
+      final success = await _gitSync.sync();
       if (success) {
-        print('KpiTrackingService: Consolidated tracking updated');
+        print('KpiTrackingService: Consolidated tracking synced to GitHub via Git');
       }
     } catch (e) {
       print('KpiTrackingService: Error updating consolidated tracking - $e');

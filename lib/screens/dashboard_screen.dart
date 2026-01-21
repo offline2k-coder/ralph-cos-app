@@ -21,15 +21,18 @@ import 'settings_screen.dart';
 import 'tasks_screen.dart';
 import 'challenge_screen.dart';
 import 'sunday_ritual_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/streak_provider.dart';
+import '../widgets/integrity_check_widget.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final DatabaseService _db = DatabaseService();
   final SecureStorageService _storage = SecureStorageService();
   final GitSyncService _gitSync = GitSyncService();
@@ -138,7 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _syncInBackground() async {
     setState(() => _isSyncing = true);
 
-    final success = await _gitSync.cloneOrPullRepo();
+    final success = await _gitSync.sync();
     if (success) {
       final tasks = await _parser.parseAllContent();
       await _db.clearAllTasks();
@@ -582,11 +585,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildStreakPassesCard(streak),
               const SizedBox(height: 16),
 
-              // CHECK-IN BUTTON
-              TacticalButton(
-                onPressed: _isCheckInActive ? _handleCheckIn : null,
-                label: _isCheckInActive ? 'CHECK IN NOW' : 'CHECK-IN LOCKED',
-                isLoading: false,
+              // MISSION STATUS / INTEGRITY CHECK
+              ref.watch(streakProvider).when(
+                data: (streakData) {
+                  final today = DateTime.now().toIso8601String().split('T')[0];
+                  return FutureBuilder<Map<String, dynamic>?>(
+                    future: _db.getDayLog(today),
+                    builder: (context, snapshot) {
+                      final dayLog = snapshot.data;
+                      if (dayLog != null && dayLog['locked'] == 1) {
+                        return TacticalCard(
+                          title: 'DAILY STATUS: LOCKED',
+                          accentColor: dayLog['status'] == 'WON' ? Colors.green : Colors.red,
+                          child: Center(
+                            child: Text(
+                              'MISSION ${dayLog['status']}',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 4,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      
+                      if (_currentTime.hour >= AppConstants.checkInStartHour) {
+                        return const IntegrityCheckWidget();
+                      }
+                      
+                      return const TacticalCard(
+                        title: 'MISSION STATUS',
+                        child: Center(
+                          child: Text('WAITING FOR 05:00...'),
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => TacticalCard(title: 'ERROR', child: Text(e.toString())),
               ),
 
               const SizedBox(height: 24),

@@ -21,9 +21,10 @@ class _SundayRitualScreenState extends State<SundayRitualScreen> {
   final List<String> _weeklyReflections = [
     'What was your biggest win this week?',
     'What challenge did you overcome?',
+    'ANTI-VISION: Where did you drift toward "Game Over" this week?',
     'What did you avoid or procrastinate on?',
-    'What one thing would make next week great?',
     'Who is your enemy this week? (Fear, distraction, comfort?)',
+    'VISION: What one thing would make next week a massive win?',
   ];
 
   @override
@@ -206,15 +207,20 @@ class _SundayRitualScreenState extends State<SundayRitualScreen> {
                             const SizedBox(height: 12),
                             TextField(
                               maxLines: 3,
+                              enabled: _allTasksComplete,
                               decoration: InputDecoration(
-                                hintText: 'Your answer...',
+                                hintText: _allTasksComplete 
+                                    ? 'Your answer...' 
+                                    : 'LOCKED: Complete all weekly tasks first',
                                 border: OutlineInputBorder(
                                   borderSide: BorderSide(
                                     color: Colors.grey.shade700,
                                   ),
                                 ),
                                 filled: true,
-                                fillColor: Colors.grey.shade800,
+                                fillColor: _allTasksComplete 
+                                    ? Colors.grey.shade800 
+                                    : Colors.grey.shade900,
                               ),
                             ),
                           ],
@@ -265,31 +271,42 @@ class _SundayRitualScreenState extends State<SundayRitualScreen> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: TextField(
+                                enabled: _allTasksComplete,
                                 decoration: InputDecoration(
                                   labelText: 'Priority ${index + 1}',
+                                  hintText: _allTasksComplete 
+                                      ? 'Task details...' 
+                                      : 'LOCKED',
                                   border: OutlineInputBorder(
                                     borderSide: BorderSide(
                                       color: Colors.grey.shade700,
                                     ),
                                   ),
                                   filled: true,
-                                  fillColor: Colors.grey.shade800,
+                                  fillColor: _allTasksComplete 
+                                      ? Colors.grey.shade800 
+                                      : Colors.grey.shade900,
                                 ),
                               ),
                             );
                           }),
                           const SizedBox(height: 16),
                           TacticalButton(
-                            onPressed: () {
+                            onPressed: _allTasksComplete ? () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Week plan saved!'),
                                   backgroundColor: Colors.green,
                                 ),
                               );
-                            },
-                            label: 'SAVE WEEK PLAN',
+                            } : null,
+                            label: _allTasksComplete 
+                                ? 'SAVE WEEK PLAN' 
+                                : 'LOCKED: COMPLETE GOALS',
                             icon: Icons.save,
+                            backgroundColor: _allTasksComplete 
+                                ? AppConstants.githubRepoName.isEmpty ? Colors.deepOrange : Colors.deepOrange 
+                                : Colors.grey.shade800,
                           ),
                         ],
                       ),

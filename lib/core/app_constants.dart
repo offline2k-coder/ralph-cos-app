@@ -8,7 +8,7 @@ class AppConstants {
   static const int eveningRitualStartHour = 17;
   
   // Sunday Strategic Reset
-  static const int sundayStrategicStartHour = 15;
+  static const int sundayStrategicStartHour = 13;
   static const int sundayStrategicEndHour = 22;
 
   // Streak/Rewards
@@ -21,4 +21,8 @@ class AppConstants {
   // GitHub Repo
   static const String githubRepoName = 'my-notion-backup';
   static const String githubOwner = 'offline2k-coder';
+
+  // Discipline Cutoffs
+  static const int streakBreakHour = 9;
+  static const int streakBreakMinute = 1;
 }

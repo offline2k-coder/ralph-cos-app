@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../services/database_service.dart';
+import '../services/content_parser_service.dart';
 import '../widgets/status_badge.dart';
 import 'task_detail_screen.dart';
 
@@ -13,6 +14,7 @@ class TasksScreen extends StatefulWidget {
 
 class _TasksScreenState extends State<TasksScreen> {
   final DatabaseService _db = DatabaseService();
+  final ContentParserService _parser = ContentParserService();
   List<Task> _allTasks = [];
   List<Task> _filteredTasks = [];
   String _selectedCategory = 'ALL';
@@ -84,6 +86,10 @@ class _TasksScreenState extends State<TasksScreen> {
   Future<void> _toggleTaskCompletion(Task task) async {
     final updatedTask = task.copyWith(isCompleted: !task.isCompleted);
     await _db.updateTask(updatedTask);
+    
+    // Write-back to Git
+    await _parser.writeTaskBack(updatedTask);
+    
     await _loadTasks();
   }
 

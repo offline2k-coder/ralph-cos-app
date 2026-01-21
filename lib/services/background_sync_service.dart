@@ -16,11 +16,11 @@ void backgroundSyncCallback() {
       final parser = ContentParserService();
       final db = DatabaseService();
 
-      // Clone or pull repo
-      final success = await gitSync.cloneOrPullRepo();
+      // Sync using native git
+      final success = await gitSync.sync();
 
       if (success) {
-        print('BackgroundSync: Repo sync successful');
+        print('BackgroundSync: Git sync successful');
 
         // Parse content
         final tasks = await parser.parseAllContent();

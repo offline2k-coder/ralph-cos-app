@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app_theme.dart';
 import 'screens/splash_screen.dart';
@@ -27,7 +28,11 @@ void main() async {
     debugPrint('Background sync setup failed: $e');
   }
 
-  runApp(const RalphCoSApp());
+  runApp(
+    const ProviderScope(
+      child: RalphCoSApp(),
+    ),
+  );
 }
 
 class RalphCoSApp extends StatelessWidget {

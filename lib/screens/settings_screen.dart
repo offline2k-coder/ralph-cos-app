@@ -265,7 +265,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     // Clone/Pull repo
-    final success = await _gitSync.cloneOrPullRepo();
+    final success = await _gitSync.sync();
 
     if (!success) {
       setState(() {
