@@ -34,11 +34,10 @@ import java.time.format.DateTimeFormatter
  * Select/Confirm Daily Levers:
  * - Mydealz
  * - Duolingo
- * - E-Mails
- * - X-Synthese
- * - Sport
+ * - Prompts
+ * - Sport jeden zweiten Tag
+ * - Emails
  * - Jobsuche
- * - Custom
  *
  * Check-in bis 09:00 → grüner Status
  * Danach → INTEGRITY_DEBT + Streak-Risiko
@@ -310,9 +309,9 @@ class MorningVowViewModel : ViewModel() {
         private val DEFAULT_LEVERS = listOf(
             "Mydealz",
             "Duolingo",
-            "E-Mails",
-            "X-Synthese",
-            "Sport",
+            "Prompts",
+            "Sport jeden zweiten Tag",
+            "Emails",
             "Jobsuche"
         )
     }

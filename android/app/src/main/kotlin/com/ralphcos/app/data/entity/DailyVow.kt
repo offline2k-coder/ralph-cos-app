@@ -13,7 +13,7 @@ data class DailyVow(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val date: LocalDate,
-    val levers: List<String>, // Mydealz, Duolingo, E-Mails, X-Synthese, Sport, Jobsuche
+    val levers: List<String>, // Mydealz, Duolingo, Prompts, Sport jeden zweiten Tag, Emails, Jobsuche
     val completed: Boolean = false,
     val completedAt: Instant? = null,
     val createdAt: Instant = Instant.now()

@@ -19,8 +19,16 @@ class IntegrityRepository(
     private val scoreDao: IntegrityScoreDao,
     private val streakDao: StreakStateDao
 ) {
+    suspend fun getLatestScore(): IntegrityScore? = scoreDao.getLatestScore()
     fun observeLatestScore(): Flow<IntegrityScore?> = scoreDao.observeLatestScore()
     fun observeStreakState(): Flow<StreakState?> = streakDao.observeState()
+
+    suspend fun getAllBreaches(): List<Breach> {
+        return breachDao.getBreachesInRange(
+            LocalDate.now().minusYears(1),
+            LocalDate.now()
+        )
+    }
 
     suspend fun getOrCreateStreakState(): StreakState {
         return streakDao.getState() ?: StreakState().also {

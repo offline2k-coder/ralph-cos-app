@@ -1,5 +1,6 @@
 package com.ralphcos.app.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +27,13 @@ enum class MirrorIntensity {
     LOW,
     MEDIUM,
     HIGH
+}
+
+enum class SyncStatus {
+    UNKNOWN,
+    SYNCING,
+    SUCCESS,
+    ERROR
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,6 +139,78 @@ fun SettingsScreen(
                             text = uiState.saveMessage,
                             style = MaterialTheme.typography.bodySmall,
                             color = if (uiState.saveMessage.contains("saved"))
+                                Color.Green
+                            else
+                                Color.Red
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Sync Status & Button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Status Ampel
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .background(
+                                        color = when (uiState.syncStatus) {
+                                            SyncStatus.SUCCESS -> Color.Green
+                                            SyncStatus.ERROR -> Color.Red
+                                            SyncStatus.SYNCING -> Color(0xFFFFA500)
+                                            SyncStatus.UNKNOWN -> Color.Gray
+                                        },
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = when (uiState.syncStatus) {
+                                    SyncStatus.SUCCESS -> "Connected"
+                                    SyncStatus.ERROR -> "Connection failed"
+                                    SyncStatus.SYNCING -> "Syncing..."
+                                    SyncStatus.UNKNOWN -> "Not synced"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = when (uiState.syncStatus) {
+                                    SyncStatus.SUCCESS -> Color.Green
+                                    SyncStatus.ERROR -> Color.Red
+                                    SyncStatus.SYNCING -> Color(0xFFFFA500)
+                                    SyncStatus.UNKNOWN -> Color.Gray
+                                }
+                            )
+                        }
+
+                        Button(
+                            onClick = { viewModel.testSync(githubService) },
+                            enabled = uiState.syncStatus != SyncStatus.SYNCING,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text(
+                                if (uiState.syncStatus == SyncStatus.SYNCING)
+                                    "SYNCING..."
+                                else
+                                    "SYNC NOW"
+                            )
+                        }
+                    }
+
+                    if (uiState.syncMessage.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.syncMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (uiState.syncStatus == SyncStatus.SUCCESS)
                                 Color.Green
                             else
                                 Color.Red
@@ -368,7 +448,9 @@ class SettingsViewModel : ViewModel() {
         val showPAT: Boolean = false,
         val mirrorIntensity: MirrorIntensity = MirrorIntensity.MEDIUM,
         val mirrorPreset: String = "steel",
-        val saveMessage: String = ""
+        val saveMessage: String = "",
+        val syncStatus: SyncStatus = SyncStatus.UNKNOWN,
+        val syncMessage: String = ""
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -430,8 +512,55 @@ class SettingsViewModel : ViewModel() {
             githubService.savePAT(pat)
 
             _uiState.value = _uiState.value.copy(
-                saveMessage = "Settings saved successfully"
+                saveMessage = "Settings saved successfully",
+                syncStatus = SyncStatus.UNKNOWN
             )
+        }
+    }
+
+    fun testSync(githubService: GitHubService) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                syncStatus = SyncStatus.SYNCING,
+                syncMessage = "Testing GitHub connection..."
+            )
+
+            try {
+                // Test if credentials are set
+                val username = githubService.getUsername()
+                val pat = githubService.getPAT()
+
+                if (username.isNullOrEmpty() || pat.isNullOrEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        syncStatus = SyncStatus.ERROR,
+                        syncMessage = "GitHub credentials not configured"
+                    )
+                    return@launch
+                }
+
+                // Create test audit file
+                val testSuccess = githubService.commitAuditFiles(
+                    java.time.LocalDate.now(),
+                    "Test sync from Ralph-CoS Settings at ${java.time.Instant.now()}"
+                )
+
+                if (testSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        syncStatus = SyncStatus.SUCCESS,
+                        syncMessage = "✓ GitHub connection successful"
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        syncStatus = SyncStatus.ERROR,
+                        syncMessage = "× Sync failed - check credentials"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    syncStatus = SyncStatus.ERROR,
+                    syncMessage = "× Error: ${e.message}"
+                )
+            }
         }
     }
 }

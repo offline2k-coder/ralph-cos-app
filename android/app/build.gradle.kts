@@ -104,4 +104,10 @@ dependencies {
 
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // Biometric Authentication
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+
+    // OkHttp for GitHub API
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

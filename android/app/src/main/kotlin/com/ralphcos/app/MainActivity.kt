@@ -1,13 +1,17 @@
 package com.ralphcos.app
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,7 +28,7 @@ import com.ralphcos.app.ui.theme.RalphTheme
 import com.ralphcos.app.worker.DelayedAuditWorker
 import com.ralphcos.app.worker.PatternInterruptionWorker
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +47,7 @@ class MainActivity : ComponentActivity() {
             database.streakStateDao()
         )
         val githubService = GitHubService(applicationContext)
+        val geminiService = com.ralphcos.app.service.GeminiService(applicationContext)
 
         // Schedule background workers
         DelayedAuditWorker.schedule(applicationContext)
@@ -50,11 +55,21 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             RalphTheme {
-                RalphApp(
-                    vowRepository = vowRepository,
-                    integrityRepository = integrityRepository,
-                    githubService = githubService
-                )
+                var isAuthenticated by remember { mutableStateOf(false) }
+
+                if (isAuthenticated) {
+                    RalphApp(
+                        vowRepository = vowRepository,
+                        integrityRepository = integrityRepository,
+                        githubService = githubService,
+                        geminiService = geminiService,
+                        database = database
+                    )
+                } else {
+                    BiometricLoginScreen(
+                        onAuthSuccess = { isAuthenticated = true }
+                    )
+                }
             }
         }
     }
@@ -69,7 +84,9 @@ class MainActivity : ComponentActivity() {
 fun RalphApp(
     vowRepository: VowRepository,
     integrityRepository: IntegrityRepository,
-    githubService: GitHubService
+    githubService: GitHubService,
+    geminiService: com.ralphcos.app.service.GeminiService,
+    database: RalphDatabase
 ) {
     val navController = rememberNavController()
 
@@ -93,7 +110,11 @@ fun RalphApp(
                     DashboardScreen(
                         onNavigateToMorningVow = { navController.navigate("morning_vow") },
                         onNavigateToEveningRitual = { navController.navigate("evening_ritual") },
-                        onNavigateToSettings = { navController.navigate("settings") }
+                        onNavigateToSettings = { navController.navigate("settings") },
+                        onNavigateToRepairMode = { navController.navigate("repair_mode") },
+                        onNavigateToChallengeGate = { navController.navigate("challenge_gate") },
+                        onNavigateToDeltaCheck = { navController.navigate("delta_check") },
+                        onNavigateToSundayRitual = { navController.navigate("sunday_ritual") }
                     )
                 }
 
@@ -124,6 +145,49 @@ fun RalphApp(
                         }
                     )
                 }
+
+                composable("repair_mode") {
+                    RepairModeScreen(
+                        integrityRepository = integrityRepository,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable("challenge_gate") {
+                    ChallengeGateScreen(
+                        integrityRepository = integrityRepository,
+                        geminiService = geminiService,
+                        challengeDao = database.challengeDao(),
+                        onStartChallenge = {
+                            navController.popBackStack()
+                        },
+                        onContinue = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable("delta_check") {
+                    DeltaCheckScreen(
+                        onInboxZeroAchieved = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable("sunday_ritual") {
+                    SundayRitualScreen(
+                        vowRepository = vowRepository,
+                        integrityRepository = integrityRepository,
+                        githubService = githubService,
+                        geminiService = geminiService,
+                        onRitualCompleted = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
             }
         }
     }
@@ -133,16 +197,29 @@ fun RalphApp(
 fun DashboardScreen(
     onNavigateToMorningVow: () -> Unit,
     onNavigateToEveningRitual: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToRepairMode: () -> Unit = {},
+    onNavigateToChallengeGate: () -> Unit = {},
+    onNavigateToDeltaCheck: () -> Unit = {},
+    onNavigateToSundayRitual: () -> Unit = {}
 ) {
-    val currentTime = remember { mutableStateOf(java.time.LocalTime.now()) }
+    // Update currentTime every minute
+    var currentTime by remember { mutableStateOf(java.time.LocalTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(60000) // Update every minute
+            currentTime = java.time.LocalTime.now()
+        }
+    }
+
     val eveningWindowStart = java.time.LocalTime.of(17, 0)
-    val isEveningWindowOpen = currentTime.value.isAfter(eveningWindowStart) ||
-                               currentTime.value.equals(eveningWindowStart)
+    val isEveningWindowOpen = currentTime.isAfter(eveningWindowStart) ||
+                               currentTime.equals(eveningWindowStart)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -191,7 +268,70 @@ fun DashboardScreen(
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+
+        // Sunday Ritual - only visible on Sundays
+        val isSunday = java.time.LocalDate.now().dayOfWeek == java.time.DayOfWeek.SUNDAY
+        val sundayWindowStart = java.time.LocalTime.of(13, 0)
+        val sundayWindowEnd = java.time.LocalTime.of(22, 0)
+        val isSundayWindowOpen = isSunday &&
+                                  currentTime.isAfter(sundayWindowStart) &&
+                                  currentTime.isBefore(sundayWindowEnd)
+
+        if (isSunday) {
+            Button(
+                onClick = onNavigateToSundayRitual,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp),
+                enabled = isSundayWindowOpen,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSundayWindowOpen)
+                        Color(0xFFFFD700) // Gold
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = Color.Black,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContentColor = Color.Gray
+                )
+            ) {
+                Text(
+                    if (isSundayWindowOpen)
+                        "SUNDAY RITUAL"
+                    else
+                        "SUNDAY RITUAL (Opens at 13:00)"
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = onNavigateToRepairMode,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color(0xFFFFA500)
+            )
+        ) {
+            Text("REPAIR MODE")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onNavigateToDeltaCheck,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color.Red
+            )
+        ) {
+            Text("INBOX CHECK")
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedButton(
             onClick = onNavigateToSettings,

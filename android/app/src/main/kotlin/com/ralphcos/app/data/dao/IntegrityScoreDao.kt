@@ -11,6 +11,9 @@ interface IntegrityScoreDao {
     suspend fun getScoreForWeek(weekStart: LocalDate): IntegrityScore?
 
     @Query("SELECT * FROM integrity_scores ORDER BY weekStart DESC LIMIT 1")
+    suspend fun getLatestScore(): IntegrityScore?
+
+    @Query("SELECT * FROM integrity_scores ORDER BY weekStart DESC LIMIT 1")
     fun observeLatestScore(): Flow<IntegrityScore?>
 
     @Query("SELECT * FROM integrity_scores ORDER BY weekStart DESC LIMIT 12")

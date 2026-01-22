@@ -14,9 +14,10 @@ import com.ralphcos.app.data.entity.*
         EveningClaim::class,
         Breach::class,
         IntegrityScore::class,
-        StreakState::class
+        StreakState::class,
+        Challenge::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -26,6 +27,7 @@ abstract class RalphDatabase : RoomDatabase() {
     abstract fun breachDao(): BreachDao
     abstract fun integrityScoreDao(): IntegrityScoreDao
     abstract fun streakStateDao(): StreakStateDao
+    abstract fun challengeDao(): ChallengeDao
 
     companion object {
         @Volatile

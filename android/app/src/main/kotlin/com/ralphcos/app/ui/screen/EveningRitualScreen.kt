@@ -4,15 +4,26 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
+import androidx.compose.material.icons.filled.SentimentDissatisfied
+import androidx.compose.material.icons.filled.SentimentNeutral
+import androidx.compose.material.icons.filled.SentimentSatisfied
+import androidx.compose.material.icons.filled.SentimentVerySatisfied
 import androidx.compose.material3.*
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -60,6 +71,7 @@ fun EveningRitualScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -95,6 +107,22 @@ fun EveningRitualScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Mood Selector
+            MoodSelectorCard(
+                selectedMood = uiState.selectedMood,
+                onMoodSelected = { mood -> viewModel.selectMood(mood) }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 30-Day Challenge Checkbox (always visible)
+            ThirtyDayChallengeCard(
+                completed = uiState.challengeCompletedToday,
+                onToggle = { viewModel.toggleChallengeCompletion() }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Reflection Items
             Text(
                 text = "ZERO-CHECK RITUAL",
@@ -104,16 +132,16 @@ fun EveningRitualScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
+            Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(REFLECTION_ITEMS.entries.toList()) { (key, label) ->
+                REFLECTION_ITEMS.forEach { item ->
                     ReflectionCheckbox(
-                        label = label,
-                        checked = uiState.reflectionItems[key] ?: false,
+                        label = item.label,
+                        icon = item.icon,
+                        checked = uiState.reflectionItems[item.key] ?: false,
                         onCheckedChange = { checked ->
-                            viewModel.toggleReflectionItem(key, checked)
+                            viewModel.toggleReflectionItem(item.key, checked)
                         }
                     )
                 }
@@ -122,7 +150,10 @@ fun EveningRitualScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Complete Button
-            val allComplete = uiState.mantraCompleted && uiState.reflectionItems.all { it.value }
+            val allComplete = uiState.mantraCompleted &&
+                              uiState.selectedMood != null &&
+                              uiState.challengeCompletedToday &&
+                              uiState.reflectionItems.all { it.value }
 
             Button(
                 onClick = {
@@ -246,6 +277,7 @@ private fun MantraCard(
 @Composable
 private fun ReflectionCheckbox(
     label: String,
+    icon: ImageVector,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -277,10 +309,132 @@ private fun ReflectionCheckbox(
                 )
             )
             Spacer(modifier = Modifier.width(12.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(24.dp),
+                tint = if (checked) Color.Green else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (checked) Color.Green else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun MoodSelectorCard(
+    selectedMood: Mood?,
+    onMoodSelected: (Mood) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = if (selectedMood != null) Color.Green else MaterialTheme.colorScheme.outline,
+                shape = MaterialTheme.shapes.medium
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selectedMood != null) Color(0xFF1A4D1A) else MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "WIE FÜHLE ICH MICH?",
+                style = MaterialTheme.typography.titleLarge,
+                color = if (selectedMood != null) Color.Green else MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Mood.values().forEach { mood ->
+                    IconButton(
+                        onClick = { onMoodSelected(mood) },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            imageVector = mood.icon,
+                            contentDescription = mood.label,
+                            modifier = Modifier.size(40.dp),
+                            tint = if (selectedMood == mood) Color.Green else Color.Gray
+                        )
+                    }
+                }
+            }
+
+            if (selectedMood != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = selectedMood.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Green,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThirtyDayChallengeCard(
+    completed: Boolean,
+    onToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = if (completed) Color.Green else Color(0xFFFFA500),
+                shape = MaterialTheme.shapes.medium
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (completed) Color(0xFF1A4D1A) else Color(0xFF4D2D00)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "30-DAY CHALLENGE",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (completed) Color.Green else Color(0xFFFFA500)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Hast du heute deine Challenge geschafft?",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Checkbox(
+                checked = completed,
+                onCheckedChange = { onToggle() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = Color.Green,
+                    uncheckedColor = Color.Gray
+                )
             )
         }
     }
@@ -327,11 +481,13 @@ class EveningRitualViewModel : ViewModel() {
         val isCompleted: Boolean = false,
         val mantraCompleted: Boolean = false,
         val reflectionItems: Map<String, Boolean> = emptyMap(),
-        val vowId: Long? = null
+        val vowId: Long? = null,
+        val selectedMood: Mood? = null,
+        val challengeCompletedToday: Boolean = false
     )
 
     private val _uiState = MutableStateFlow(
-        UiState(reflectionItems = REFLECTION_ITEMS.keys.associateWith { false })
+        UiState(reflectionItems = REFLECTION_ITEMS.associate { it.key to false })
     )
     val uiState: StateFlow<UiState> = _uiState
 
@@ -342,7 +498,7 @@ class EveningRitualViewModel : ViewModel() {
                     todayClaim = claim,
                     isCompleted = claim?.completed ?: false,
                     mantraCompleted = claim?.mantraCompleted ?: false,
-                    reflectionItems = claim?.reflectionItems ?: REFLECTION_ITEMS.keys.associateWith { false }
+                    reflectionItems = claim?.reflectionItems ?: REFLECTION_ITEMS.associate { it.key to false }
                 )
             }
         }
@@ -357,6 +513,16 @@ class EveningRitualViewModel : ViewModel() {
     fun toggleMantra() {
         _uiState.value = _uiState.value.copy(
             mantraCompleted = !_uiState.value.mantraCompleted
+        )
+    }
+
+    fun selectMood(mood: Mood) {
+        _uiState.value = _uiState.value.copy(selectedMood = mood)
+    }
+
+    fun toggleChallengeCompletion() {
+        _uiState.value = _uiState.value.copy(
+            challengeCompletedToday = !_uiState.value.challengeCompletedToday
         )
     }
 
@@ -377,9 +543,21 @@ class EveningRitualViewModel : ViewModel() {
                 mantraCompleted = _uiState.value.mantraCompleted
             )
 
-            // Commit to GitHub
-            val claimData = _uiState.value.reflectionItems.entries
+            // Commit to GitHub with Mood and Challenge status
+            val moodText = _uiState.value.selectedMood?.let { "Mood: ${it.label} (${it.name})" } ?: "Mood: Not set"
+            val reflectionText = _uiState.value.reflectionItems.entries
                 .joinToString("\n") { "${it.key}: ${it.value}" }
+
+            val claimData = """
+                $moodText
+
+                Daily Challenge completed: ${_uiState.value.challengeCompletedToday}
+
+                Reflections:
+                $reflectionText
+
+                Mantra Completed: ${_uiState.value.mantraCompleted}
+            """.trimIndent()
 
             val success = githubService.commitAuditFiles(LocalDate.now(), claimData)
             val gitSha = if (success) "local_commit" else null
@@ -389,10 +567,24 @@ class EveningRitualViewModel : ViewModel() {
     }
 }
 
-private val REFLECTION_ITEMS = mapOf(
-    "kept_vow" to "Did I keep my vow?",
-    "avoided" to "What did I avoid today?",
-    "inbox_zero" to "Inbox Zero achieved",
-    "task_zero" to "Task Zero achieved",
-    "guilt_zero" to "Guilt Zero achieved"
+enum class Mood(val label: String, val icon: ImageVector) {
+    VERY_BAD("Sehr schlecht", Icons.Default.SentimentVeryDissatisfied),
+    BAD("Schlecht", Icons.Default.SentimentDissatisfied),
+    NEUTRAL("Neutral", Icons.Default.SentimentNeutral),
+    GOOD("Gut", Icons.Default.SentimentSatisfied),
+    VERY_GOOD("Sehr gut", Icons.Default.SentimentVerySatisfied)
+}
+
+data class ReflectionItem(
+    val key: String,
+    val label: String,
+    val icon: ImageVector
+)
+
+private val REFLECTION_ITEMS = listOf(
+    ReflectionItem("kept_vow", "Did I keep my vow?", Icons.Default.Check),
+    ReflectionItem("avoided", "What did I avoid today?", Icons.Default.Warning),
+    ReflectionItem("inbox_zero", "Inbox Zero achieved", Icons.Default.Email),
+    ReflectionItem("task_zero", "Task Zero achieved", Icons.Default.List),
+    ReflectionItem("guilt_zero", "Guilt Zero achieved", Icons.Default.Face)
 )
