@@ -1,129 +1,59 @@
 package com.ralphcos.app
 
-import android.os.Build
-import io.flutter.embedding.android.FlutterFragmentActivity
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.generationConfig
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.ralphcos.app.data.RalphDatabase
+import com.ralphcos.app.data.repository.IntegrityRepository
+import com.ralphcos.app.data.repository.VowRepository
+import com.ralphcos.app.service.GitHubService
+import com.ralphcos.app.ui.component.IdentityMirror
+import com.ralphcos.app.ui.screen.*
+import com.ralphcos.app.ui.theme.RalphTheme
+import com.ralphcos.app.worker.DelayedAuditWorker
+import com.ralphcos.app.worker.PatternInterruptionWorker
 
-class MainActivity : FlutterFragmentActivity() {
-    private val CHANNEL = "com.ralphcos.app/ai"
-    private var generativeModel: GenerativeModel? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+class MainActivity : ComponentActivity() {
 
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "checkSupport" -> {
-                        val supported = checkGeminiNanoSupport()
-                        result.success(supported)
-                    }
-                    "inferenceText" -> {
-                        val prompt = call.argument<String>("prompt")
-                        val maxTokens = call.argument<Int>("maxTokens") ?: 150
+        // Initialize database
+        val database = RalphDatabase.getInstance(applicationContext)
 
-                        if (prompt == null) {
-                            result.error("INVALID_ARGUMENT", "Prompt is required", null)
-                            return@setMethodCallHandler
-                        }
+        // Initialize repositories
+        val vowRepository = VowRepository(
+            database.dailyVowDao(),
+            database.eveningClaimDao()
+        )
+        val integrityRepository = IntegrityRepository(
+            database.breachDao(),
+            database.integrityScoreDao(),
+            database.streakStateDao()
+        )
+        val githubService = GitHubService(applicationContext)
 
-                        handleInference(prompt, maxTokens, result)
-                    }
-                    "initializeModel" -> {
-                        initializeGeminiModel()
-                        result.success(true)
-                    }
-                    else -> {
-                        result.notImplemented()
-                    }
-                }
-            }
-    }
+        // Schedule background workers
+        DelayedAuditWorker.schedule(applicationContext)
+        PatternInterruptionWorker.scheduleAll(applicationContext)
 
-    private fun checkGeminiNanoSupport(): Boolean {
-        // Check if device is Pixel 9 series or has AI Core capability
-        // For now, we check for Pixel 9 explicitly
-        val deviceModel = Build.MODEL.uppercase()
-        val manufacturer = Build.MANUFACTURER.uppercase()
-
-        return when {
-            // Pixel 9 series
-            manufacturer == "GOOGLE" && deviceModel.contains("PIXEL 9") -> true
-            // Pixel 8 series (limited support)
-            manufacturer == "GOOGLE" && deviceModel.contains("PIXEL 8") -> true
-            // Check Android version (Gemini Nano requires Android 10+)
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q -> false
-            // For other devices, we can't guarantee support
-            else -> false
-        }
-    }
-
-    private fun initializeGeminiModel() {
-        try {
-            // Initialize Gemini Nano model for on-device inference
-            // Note: This requires Google AI Edge SDK to be properly configured
-            generativeModel = GenerativeModel(
-                modelName = "gemini-nano",
-                apiKey = "", // Empty for on-device, uses device's built-in model
-                generationConfig = generationConfig {
-                    temperature = 0.7f
-                    topK = 40
-                    topP = 0.95f
-                    maxOutputTokens = 256
-                }
-            )
-        } catch (e: Exception) {
-            // Model initialization failed, will fallback to cloud
-            android.util.Log.e("MainActivity", "Failed to initialize Gemini Nano: ${e.message}")
-        }
-    }
-
-    private fun handleInference(prompt: String, maxTokens: Int, result: MethodChannel.Result) {
-        coroutineScope.launch {
-            try {
-                // Initialize model if not already done
-                if (generativeModel == null) {
-                    initializeGeminiModel()
-                }
-
-                if (generativeModel == null) {
-                    result.error(
-                        "MODEL_NOT_AVAILABLE",
-                        "Gemini Nano model not available on this device",
-                        null
-                    )
-                    return@launch
-                }
-
-                // Perform inference on background thread
-                val response = withContext(Dispatchers.IO) {
-                    generativeModel!!.generateContent(prompt)
-                }
-
-                val generatedText = response.text ?: ""
-
-                // Enforce max tokens/characters limit
-                val finalText = if (generatedText.length > maxTokens) {
-                    generatedText.substring(0, maxTokens - 3) + "..."
-                } else {
-                    generatedText
-                }
-
-                result.success(finalText)
-            } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "Inference error: ${e.message}")
-                result.error(
-                    "INFERENCE_ERROR",
-                    "Failed to generate content: ${e.message}",
-                    null
+        setContent {
+            RalphTheme {
+                RalphApp(
+                    vowRepository = vowRepository,
+                    integrityRepository = integrityRepository,
+                    githubService = githubService
                 )
             }
         }
@@ -131,6 +61,148 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        generativeModel = null
+        // Clean up if needed
+    }
+}
+
+@Composable
+fun RalphApp(
+    vowRepository: VowRepository,
+    integrityRepository: IntegrityRepository,
+    githubService: GitHubService
+) {
+    val navController = rememberNavController()
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Pinned Identity Mirror at top
+            IdentityMirror(
+                integrityRepository = integrityRepository,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            // Navigation
+            NavHost(
+                navController = navController,
+                startDestination = "dashboard"
+            ) {
+                composable("dashboard") {
+                    DashboardScreen(
+                        onNavigateToMorningVow = { navController.navigate("morning_vow") },
+                        onNavigateToEveningRitual = { navController.navigate("evening_ritual") },
+                        onNavigateToSettings = { navController.navigate("settings") }
+                    )
+                }
+
+                composable("morning_vow") {
+                    MorningVowScreen(
+                        vowRepository = vowRepository,
+                        onVowCompleted = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable("evening_ritual") {
+                    EveningRitualScreen(
+                        vowRepository = vowRepository,
+                        githubService = githubService,
+                        onRitualCompleted = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable("settings") {
+                    SettingsScreen(
+                        githubService = githubService,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardScreen(
+    onNavigateToMorningVow: () -> Unit,
+    onNavigateToEveningRitual: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
+    val currentTime = remember { mutableStateOf(java.time.LocalTime.now()) }
+    val eveningWindowStart = java.time.LocalTime.of(17, 0)
+    val isEveningWindowOpen = currentTime.value.isAfter(eveningWindowStart) ||
+                               currentTime.value.equals(eveningWindowStart)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "RALPH-CoS",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Text(
+            text = "Executive Integrity OS",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = onNavigateToMorningVow,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+        ) {
+            Text("MORNING VOW")
+        }
+
+        Button(
+            onClick = onNavigateToEveningRitual,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp),
+            enabled = isEveningWindowOpen,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isEveningWindowOpen)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.surfaceVariant,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Text(
+                if (isEveningWindowOpen)
+                    "EVENING RITUAL"
+                else
+                    "EVENING RITUAL (Opens at 17:00)"
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        OutlinedButton(
+            onClick = onNavigateToSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Text("SETTINGS")
+        }
     }
 }
